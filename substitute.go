@@ -10,7 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
-	"github.com/guregu/dynamo/internal/exprs"
+	"github.com/niltonkummer/dynamo/internal/exprs"
 )
 
 // subber is a "mixin" for operators for keep track of subtituted keys and values
