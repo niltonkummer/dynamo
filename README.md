@@ -12,6 +12,8 @@ package dynamo
 
 import (
 	"time"
+	"context"
+	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -34,13 +36,16 @@ type widget struct {
 
 
 func main() {
-	conf := config.LoadConfig()
-	db := dynamo.New(conf)
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+	db := dynamo.New(cfg)
 	table := db.Table("Widgets")
 
 	// put item
 	w := widget{UserID: 613, Time: time.Now(), Msg: "hello"}
-	err := table.Put(w).Run()
+	err = table.Put(w).Run()
 
 	// get the same item
 	var result widget
