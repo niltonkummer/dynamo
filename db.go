@@ -2,12 +2,14 @@
 package dynamo
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/guregu/dynamo/dynamodbiface"
 )
 
 // DB is a DynamoDB client.
@@ -16,9 +18,9 @@ type DB struct {
 }
 
 // New creates a new client with the given configuration.
-func New(p client.ConfigProvider, cfgs ...*aws.Config) *DB {
+func New(cfg aws.Config) *DB {
 	db := &DB{
-		dynamodb.New(p, cfgs...),
+		client: dynamodb.NewFromConfig(cfg),
 	}
 	return db
 }
@@ -52,7 +54,7 @@ func (lt *ListTables) All() ([]string, error) {
 }
 
 // AllWithContext returns every table or an error.
-func (lt *ListTables) AllWithContext(ctx aws.Context) ([]string, error) {
+func (lt *ListTables) AllWithContext(ctx context.Context) ([]string, error) {
 	var tables []string
 	itr := lt.Iter()
 	var name string
@@ -81,7 +83,7 @@ func (itr *ltIter) Next(out interface{}) bool {
 	return itr.NextWithContext(ctx, out)
 }
 
-func (itr *ltIter) NextWithContext(ctx aws.Context, out interface{}) bool {
+func (itr *ltIter) NextWithContext(ctx context.Context, out interface{}) bool {
 	if ctx.Err() != nil {
 		itr.err = ctx.Err()
 	}
@@ -96,7 +98,7 @@ func (itr *ltIter) NextWithContext(ctx aws.Context, out interface{}) bool {
 
 	if itr.result != nil {
 		if itr.idx < len(itr.result.TableNames) {
-			*out.(*string) = *itr.result.TableNames[itr.idx]
+			*out.(*string) = itr.result.TableNames[itr.idx]
 			itr.idx++
 			return true
 		}
@@ -108,7 +110,7 @@ func (itr *ltIter) NextWithContext(ctx aws.Context, out interface{}) bool {
 	}
 
 	itr.err = retry(ctx, func() error {
-		res, err := itr.lt.db.client.ListTablesWithContext(ctx, itr.input())
+		res, err := itr.lt.db.client.ListTables(ctx, itr.input())
 		if err != nil {
 			return err
 		}
@@ -123,7 +125,7 @@ func (itr *ltIter) NextWithContext(ctx aws.Context, out interface{}) bool {
 		return false
 	}
 
-	*out.(*string) = *itr.result.TableNames[0]
+	*out.(*string) = itr.result.TableNames[0]
 	itr.idx = 1
 	return true
 }
@@ -147,7 +149,7 @@ type Iter interface {
 	Next(out interface{}) bool
 	// NextWithContext tries to unmarshal the next result into out.
 	// Returns false when it is complete or if it runs into an error.
-	NextWithContext(ctx aws.Context, out interface{}) bool
+	NextWithContext(ctx context.Context, out interface{}) bool
 	// Err returns the error encountered, if any.
 	// You should check this after Next is finished.
 	Err() error
@@ -164,4 +166,4 @@ type PagingIter interface {
 
 // PagingKey is a key used for splitting up partial results.
 // Get a PagingKey from a PagingIter and pass it to StartFrom in Query or Scan.
-type PagingKey map[string]*dynamodb.AttributeValue
+type PagingKey map[string]types.AttributeValue

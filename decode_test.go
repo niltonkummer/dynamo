@@ -1,23 +1,27 @@
 package dynamo
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 var itemDecodeOnlyTests = []struct {
 	name   string
-	given  map[string]*dynamodb.AttributeValue
+	given  map[string]types.AttributeValue
 	expect interface{}
 }{
 	{
 		// unexported embedded pointers should be ignored
 		name: "embedded unexported pointer",
-		given: map[string]*dynamodb.AttributeValue{
-			"Embedded": {BOOL: aws.Bool(true)},
+		given: map[string]types.AttributeValue{
+			"Embedded": &types.AttributeValueMemberBOOL{Value: true},
 		},
 		expect: struct {
 			*embedded
@@ -26,8 +30,8 @@ var itemDecodeOnlyTests = []struct {
 	{
 		// unexported fields should be ignored
 		name: "unexported fields",
-		given: map[string]*dynamodb.AttributeValue{
-			"a": {BOOL: aws.Bool(true)},
+		given: map[string]types.AttributeValue{
+			"a": &types.AttributeValueMemberBOOL{Value: true},
 		},
 		expect: struct {
 			a bool
@@ -36,8 +40,8 @@ var itemDecodeOnlyTests = []struct {
 	{
 		// embedded pointers shouldn't clobber existing fields
 		name: "exported pointer embedded struct clobber",
-		given: map[string]*dynamodb.AttributeValue{
-			"Embedded": {S: aws.String("OK")},
+		given: map[string]types.AttributeValue{
+			"Embedded": &types.AttributeValueMemberS{Value: "OK"},
 		},
 		expect: struct {
 			Embedded string
@@ -49,7 +53,7 @@ var itemDecodeOnlyTests = []struct {
 	},
 }
 
-func TestUnmarshalAsymmetric(t *testing.T) {
+func testUnmarshalAsymmetric(t *testing.T) {
 	for _, tc := range itemDecodeOnlyTests {
 		rv := reflect.New(reflect.TypeOf(tc.expect))
 		expect := rv.Interface()
@@ -75,11 +79,11 @@ func TestUnmarshalAppend(t *testing.T) {
 	page := "5"
 	limit := "20"
 	null := true
-	item := map[string]*dynamodb.AttributeValue{
-		"UserID": {N: &id},
-		"Page":   {N: &page},
-		"Limit":  {N: &limit},
-		"Null":   {NULL: &null},
+	item := map[string]types.AttributeValue{
+		"UserID": &types.AttributeValueMemberN{Value: id},
+		"Page":   &types.AttributeValueMemberN{Value: page},
+		"Limit":  &types.AttributeValueMemberN{Value: limit},
+		"Null":   &types.AttributeValueMemberNULL{Value: null},
 	}
 
 	for range [15]struct{}{} {
@@ -111,20 +115,6 @@ func TestUnmarshalAppend(t *testing.T) {
 	}
 }
 
-func TestUnmarshal(t *testing.T) {
-	for _, tc := range encodingTests {
-		rv := reflect.New(reflect.TypeOf(tc.in))
-		err := unmarshalReflect(tc.out, rv.Elem())
-		if err != nil {
-			t.Errorf("%s: unexpected error: %v", tc.name, err)
-		}
-
-		if !reflect.DeepEqual(rv.Elem().Interface(), tc.in) {
-			t.Errorf("%s: bad result: %#v ≠ %#v", tc.name, rv.Elem().Interface(), tc.out)
-		}
-	}
-}
-
 func TestUnmarshalItem(t *testing.T) {
 	for _, tc := range itemEncodingTests {
 		rv := reflect.New(reflect.TypeOf(tc.in))
@@ -134,53 +124,18 @@ func TestUnmarshalItem(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(rv.Elem().Interface(), tc.in) {
-			t.Errorf("%s: bad result: %#v ≠ %#v", tc.name, rv.Elem().Interface(), tc.in)
+			var opts []cmp.Option
+			if rv.Elem().Kind() == reflect.Struct {
+				opts = append(opts, cmpopts.IgnoreUnexported(rv.Elem().Interface()))
+			}
+
+			diff := cmp.Diff(rv.Elem().Interface(), tc.in, opts...)
+			fmt.Println(diff)
+
+			if strings.TrimSpace(diff) != "" {
+				t.Errorf("%s: bad result: %#v ≠ %#v", tc.name, rv.Elem().Interface(), tc.in)
+			}
 		}
-	}
-}
 
-func TestUnmarshalNULL(t *testing.T) {
-	tru := true
-	arbitrary := "hello world"
-	double := new(*int)
-	item := map[string]*dynamodb.AttributeValue{
-		"String":    {NULL: &tru},
-		"Slice":     {NULL: &tru},
-		"Array":     {NULL: &tru},
-		"StringPtr": {NULL: &tru},
-		"DoublePtr": {NULL: &tru},
-		"Map":       {NULL: &tru},
-		"Interface": {NULL: &tru},
-	}
-
-	type resultType struct {
-		String    string
-		Slice     []string
-		Array     [2]byte
-		StringPtr *string
-		DoublePtr **int
-		Map       map[string]int
-		Interface interface{}
-	}
-
-	// dirty result, we want this to be reset
-	result := resultType{
-		String:    "ABC",
-		Slice:     []string{"A", "B"},
-		Array:     [2]byte{'A', 'B'},
-		StringPtr: &arbitrary,
-		DoublePtr: double,
-		Map: map[string]int{
-			"A": 1,
-		},
-		Interface: "interface{}",
-	}
-
-	if err := UnmarshalItem(item, &result); err != nil {
-		t.Error(err)
-	}
-
-	if (!reflect.DeepEqual(result, resultType{})) {
-		t.Error("unmarshal null: bad result:", result, "≠", resultType{})
 	}
 }

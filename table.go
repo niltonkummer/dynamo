@@ -1,8 +1,10 @@
 package dynamo
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 // Status is an enumeration of table and index statuses.
@@ -57,10 +59,10 @@ func (dt *DeleteTable) Run() error {
 }
 
 // RunWithContext executes this request and deletes the table.
-func (dt *DeleteTable) RunWithContext(ctx aws.Context) error {
+func (dt *DeleteTable) RunWithContext(ctx context.Context) error {
 	input := dt.input()
 	return retry(ctx, func() error {
-		_, err := dt.table.db.client.DeleteTableWithContext(ctx, input)
+		_, err := dt.table.db.client.DeleteTable(ctx, input)
 		return err
 	})
 }
@@ -110,7 +112,7 @@ type ConsumedCapacity struct {
 	TableName string
 }
 
-func addConsumedCapacity(cc *ConsumedCapacity, raw *dynamodb.ConsumedCapacity) {
+func addConsumedCapacity(cc *ConsumedCapacity, raw *types.ConsumedCapacity) {
 	if cc == nil || raw == nil {
 		return
 	}
