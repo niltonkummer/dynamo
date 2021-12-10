@@ -1,7 +1,7 @@
 ## dynamo [![GoDoc](https://godoc.org/github.com/niltonkummer/dynamo?status.svg)](https://godoc.org/github.com/niltonkummer/dynamo)
 `import "github.com/niltonkummer/dynamo"`
 
-dynamo is an expressive [DynamoDB](https://aws.amazon.com/dynamodb/) client for Go, with an easy but powerful API. dynamo integrates with the official [AWS SDK](https://github.com/aws/aws-sdk-go/).
+dynamo is an expressive [DynamoDB](https://aws.amazon.com/dynamodb/) client for Go, with an easy but powerful API. dynamo integrates with the official [AWS SDK v2](https://github.com/aws/aws-sdk-go-v2/).
 
 This library is stable and versioned with Go modules.
 
