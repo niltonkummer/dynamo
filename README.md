@@ -1,5 +1,5 @@
-## dynamo [![GoDoc](https://godoc.org/github.com/guregu/dynamo?status.svg)](https://godoc.org/github.com/guregu/dynamo)
-`import "github.com/guregu/dynamo"`
+## dynamo [![GoDoc](https://godoc.org/github.com/niltonkummer/dynamo?status.svg)](https://godoc.org/github.com/niltonkummer/dynamo)
+`import "github.com/niltonkummer/dynamo"`
 
 dynamo is an expressive [DynamoDB](https://aws.amazon.com/dynamodb/) client for Go, with an easy but powerful API. dynamo integrates with the official [AWS SDK](https://github.com/aws/aws-sdk-go/).
 
@@ -13,9 +13,9 @@ package dynamo
 import (
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/guregu/dynamo"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/niltonkummer/dynamo"
 )
 
 // Use struct tags much like the standard JSON library,
@@ -34,8 +34,8 @@ type widget struct {
 
 
 func main() {
-	sess := session.Must(session.NewSession())
-	db := dynamo.New(sess, &aws.Config{Region: aws.String("us-west-2")})
+	conf := config.LoadConfig()
+	db := dynamo.New(conf)
 	table := db.Table("Widgets")
 
 	// put item
@@ -85,7 +85,7 @@ table.Put(item{ID: 42}).If("attribute_not_exists(ID)").Run()
 
 dynamo automatically handles the following interfaces:
 
-* [`dynamo.Marshaler`](https://godoc.org/github.com/guregu/dynamo#Marshaler) and [`dynamo.Unmarshaler`](https://godoc.org/github.com/guregu/dynamo#Unmarshaler)
+* [`dynamo.Marshaler`](https://godoc.org/github.com/niltonkummer/dynamo#Marshaler) and [`dynamo.Unmarshaler`](https://godoc.org/github.com/niltonkummer/dynamo#Unmarshaler)
 * [`dynamodbattribute.Marshaler`](https://godoc.org/github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute#Marshaler) and [`dynamodbattribute.Unmarshaler`](https://godoc.org/github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute#Unmarshaler)
 * [`encoding.TextMarshaler`](https://godoc.org/encoding#TextMarshaler) and [`encoding.TextUnmarshaler`](https://godoc.org/encoding#TextUnmarshaler)
 
@@ -180,7 +180,7 @@ This creates a table with the primary hash key ID and range key Time. It creates
 
 dynamo has been in development before the official AWS libraries were stable. We use a different encoder and decoder than the [dynamodbattribute](https://godoc.org/github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute) package. dynamo uses the `dynamo` struct tag instead of the `dynamodbav` struct tag, and we also prefer to automatically omit invalid values such as empty strings, whereas the dynamodbattribute package substitutes null values for them. Items that satisfy the [`dynamodbattribute.(Un)marshaler`](https://godoc.org/github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute#Marshaler) interfaces are compatibile with both libraries.
 
-In order to use dynamodbattribute's encoding facilities, you must wrap objects passed to dynamo with [`dynamo.AWSEncoding`](https://godoc.org/github.com/guregu/dynamo#AWSEncoding). Here is a quick example:
+In order to use dynamodbattribute's encoding facilities, you must wrap objects passed to dynamo with [`dynamo.AWSEncoding`](https://godoc.org/github.com/niltonkummer/dynamo#AWSEncoding). Here is a quick example:
 
 ```go
 // Notice the use of the dynamodbav struct tag
@@ -203,7 +203,7 @@ err := db.Table("Books").Get("ID", 555).One(dynamo.AWSEncoding(&someBook))
 By default, tests are run in offline mode. Create a table called `TestDB`, with a Number Partition Key called `UserID` and a String Sort Key called `Time`. Change the table name with the environment variable `DYNAMO_TEST_TABLE`. You must specify `DYNAMO_TEST_REGION`, setting it to the AWS region where your test table is.
 
  ```bash
-DYNAMO_TEST_REGION=us-west-2 go test github.com/guregu/dynamo/... -cover
+DYNAMO_TEST_REGION=us-west-2 go test github.com/niltonkummer/dynamo/... -cover
  ```
 
 Example of using [aws-cli](https://docs.aws.amazon.com/ja_jp/amazondynamodb/latest/developerguide/Tools.CLI.html) to create a table for testing.
@@ -225,7 +225,7 @@ aws dynamodb create-table \
 If you want to use [DynamoDB Local](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) to run local tests, specify `DYNAMO_TEST_ENDPOINT`.
 
  ```bash
-DYNAMO_TEST_REGION=us-west-2 DYNAMO_TEST_ENDPOINT=http://localhost:8000 go test github.com/guregu/dynamo/... -cover
+DYNAMO_TEST_REGION=us-west-2 DYNAMO_TEST_ENDPOINT=http://localhost:8000 go test github.com/niltonkummer/dynamo/... -cover
  ```
 
 ### License
