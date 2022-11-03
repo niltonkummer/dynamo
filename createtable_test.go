@@ -5,11 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type UserAction struct {
@@ -101,7 +100,7 @@ func TestCreateTable(t *testing.T) {
 			}},
 			Projection: &types.Projection{
 				ProjectionType:   types.ProjectionTypeInclude,
-				NonKeyAttributes: []string{("UUID")},
+				NonKeyAttributes: []string{"UUID"},
 			},
 		}},
 		ProvisionedThroughput: &types.ProvisionedThroughput{

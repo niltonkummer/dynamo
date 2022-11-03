@@ -6,10 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 var itemDecodeOnlyTests = []struct {
@@ -53,7 +52,7 @@ var itemDecodeOnlyTests = []struct {
 	},
 }
 
-func testUnmarshalAsymmetric(t *testing.T) {
+func TestUnmarshalAsymmetric(t *testing.T) {
 	for _, tc := range itemDecodeOnlyTests {
 		rv := reflect.New(reflect.TypeOf(tc.expect))
 		expect := rv.Interface()

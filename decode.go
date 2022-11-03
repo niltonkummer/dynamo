@@ -86,8 +86,8 @@ func unmarshalReflect(av types.AttributeValue, rv reflect.Value) error {
 				*x.(*types.AttributeValueMemberL) = *res
 				return nil
 			case *types.AttributeValueMemberM:
-				res := av.(*types.AttributeValueMemberL)
-				*x.(*types.AttributeValueMemberL) = *res
+				res := av.(*types.AttributeValueMemberM)
+				*x.(*types.AttributeValueMemberM) = *res
 				return nil
 			case *types.AttributeValueMemberN:
 				res := av.(*types.AttributeValueMemberN)
@@ -212,9 +212,6 @@ func unmarshalReflect(av types.AttributeValue, rv reflect.Value) error {
 			truthy = reflect.ValueOf(struct{}{})
 		default:
 			_, valueIsM := av.(*types.AttributeValueMemberM)
-			if !valueIsM {
-				return fmt.Errorf("dynamo: cannot unmarshal %s data into struct", avTypeName(av))
-			}
 			if !valueIsM {
 				return fmt.Errorf("dynamo: unmarshal map set: value type must be struct{} or bool, got %v", rv.Type())
 			}
@@ -481,6 +478,10 @@ func unmarshalItem(item map[string]types.AttributeValue, out interface{}) error 
 }
 
 func unmarshalAppend(item map[string]types.AttributeValue, out interface{}) error {
+	if awsenc, ok := out.(awsEncoder); ok {
+		return unmarshalAppendAWS(item, awsenc.iface)
+	}
+
 	rv := reflect.ValueOf(out)
 	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Slice {
 		return fmt.Errorf("dynamo: unmarshal append: result argument must be a slice pointer")
